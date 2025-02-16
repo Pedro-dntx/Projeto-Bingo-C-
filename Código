@@ -1,15 +1,14 @@
 #include <iostream>
+#include <fstream>
 #include <cstdlib>
 #include <ctime>
 #include <set>
 #include <iomanip>
 #include <string>
- 
 using namespace std;
 const int TAMANHO = 5;
 const int MAX_JOGADORES = 5;
 const int MAX_NUMERO = 75;
- 
 void gerarCartela(int cartela[TAMANHO][TAMANHO]) {
     set<int> numerosUsados;
     for (int i = 0; i < TAMANHO; i++) {
@@ -23,7 +22,6 @@ void gerarCartela(int cartela[TAMANHO][TAMANHO]) {
         }
     }
 }
- 
 void imprimirCartelas(int numJogadores, string jogadores[MAX_JOGADORES], int cartelas[MAX_JOGADORES][TAMANHO][TAMANHO], bool marcados[MAX_JOGADORES][TAMANHO][TAMANHO]) {
     cout << "\nCartelas Atualizadas:\n";
     for (int p = 0; p < numJogadores; p++) {
@@ -41,7 +39,51 @@ void imprimirCartelas(int numJogadores, string jogadores[MAX_JOGADORES], int car
         cout << "\n";
     }
 }
- 
+void salvarCartelas(int numJogadores, string jogadores[MAX_JOGADORES], int cartelas[MAX_JOGADORES][TAMANHO][TAMANHO], bool marcados[MAX_JOGADORES][TAMANHO][TAMANHO], const set<int>& numerosSorteados) {
+    ofstream arquivo("bingo_cartelas.txt");
+    arquivo << "Cartelas Iniciais:\n";
+    for (int p = 0; p < numJogadores; p++) {
+        arquivo << "Jogador: " << jogadores[p] << "\n";
+        for (int i = 0; i < TAMANHO; i++) {
+            for (int j = 0; j < TAMANHO; j++) {
+                arquivo << setw(3) << cartelas[p][i][j] << " ";
+            }
+            arquivo << "\n";
+        }
+        arquivo << "\n";
+    }
+    arquivo << "\nNúmeros sorteados: ";
+    for (int numero : numerosSorteados) {
+        arquivo << numero << " ";
+    }
+    arquivo << "\n\n";
+    arquivo << "Cartelas Atualizadas:\n";
+    for (int p = 0; p < numJogadores; p++) {
+        arquivo << "Jogador: " << jogadores[p] << "\n";
+        for (int i = 0; i < TAMANHO; i++) {
+            for (int j = 0; j < TAMANHO; j++) {
+                if (marcados[p][i][j]) {
+                    arquivo << " X ";
+                } else {
+                    arquivo << to_string(cartelas[p][i][j]) << " ";
+                }
+            }
+            arquivo << "\n";
+        }
+        arquivo << "\n";
+    }
+    arquivo.close();
+}
+bool verificarVitoria(bool marcados[TAMANHO][TAMANHO]) {
+    for (int i = 0; i < TAMANHO; i++) {
+        for (int j = 0; j < TAMANHO; j++) {
+            if (!marcados[i][j]) {
+                return false;
+            }
+        }
+    }
+    return true;
+}
 int main() {
     srand(time(0));
     int numJogadores;
@@ -60,6 +102,35 @@ int main() {
         cin >> jogadores[i];
         gerarCartela(cartelas[i]);
     }
-    imprimirCartelas(numJogadores, jogadores, cartelas, marcados);
-    return 0;
+    set<int> numerosSorteados;
+    salvarCartelas(numJogadores, jogadores, cartelas, marcados, numerosSorteados);
+    bool vencedorEncontrado = false;
+    while (!vencedorEncontrado) {
+        cout << "Pressione ENTER para sortear um número...";
+        cin.ignore();
+        cin.get();
+        int numeroSorteado = rand() % MAX_NUMERO + 1;
+        while (numerosSorteados.find(numeroSorteado) != numerosSorteados.end()) {
+            numeroSorteado = rand() % MAX_NUMERO + 1;
+        }
+        numerosSorteados.insert(numeroSorteado);
+        cout << "Numero sorteado: " << numeroSorteado << endl;
+        for (int p = 0; p < numJogadores; p++) {
+            for (int i = 0; i < TAMANHO; i++) {
+                for (int j = 0; j < TAMANHO; j++) {
+                    if (cartelas[p][i][j] == numeroSorteado) {
+                        marcados[p][i][j] = true;
+                    }
+                }
+            }
+        }
+        imprimirCartelas(numJogadores, jogadores, cartelas, marcados);
+        for (int p = 0; p < numJogadores; p++) {
+            if (verificarVitoria(marcados[p])) {
+                cout << "\nBINGO! " << jogadores[p] << " venceu!\n";
+                vencedorEncontrado = true;
+            }
+        }
+        salvarCartelas(numJogadores, jogadores, cartelas, marcados, numerosSorteados);
+    }
 }
